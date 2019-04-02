@@ -133,6 +133,8 @@ class ResultArray(tuple): pass
 
 
 def compile_jaxpr(jaxpr, const_vals, *abstract_args):
+  # from IPython import embed; embed()
+  print(jaxpr)
   arg_shapes = list(map(xla_shape, abstract_args))
   built_c = jaxpr_computation(jaxpr, const_vals, (), *arg_shapes)
   result_shape = xla_shape_to_result_shape(built_c.GetReturnValueShape())

@@ -102,9 +102,14 @@ def jit(fun, static_argnums=()):
     dyn_argnums = [i for i in range(len(args)) if i not in static_argnums]
     f, dyn_args = _argnums_partial(f, dyn_argnums, args)
     jaxtupletree_args, in_trees = unzip2(map(pytree_to_jaxtupletree, dyn_args))
+    # print("args", jaxtupletree_args)
+    # print("in trees", in_trees)
     _check_args(jaxtupletree_args)
     jaxtree_fun, out_tree = pytree_fun_to_jaxtupletree_fun(f, in_trees)
     jaxtupletree_out = xla.xla_call(jaxtree_fun, *jaxtupletree_args)
+    # from IPython import embed; embed()
+    # print("Out tree", out_tree())
+    # print("tupletree_out", jaxtupletree_out)
     return build_tree(out_tree(), jaxtupletree_out)
 
   f_jitted.__name__ = "jit({})".format(f_jitted.__name__)
