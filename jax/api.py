@@ -712,10 +712,9 @@ def make_jaxpr(fun):
     aval = xla.abstractify(x)
     return pe.PartialVal((aval, core.unit))
 
-  wrapped = lu.wrap_init(fun)
-
   @wraps(fun)
   def jaxpr_maker(*args, **kwargs):
+    wrapped = lu.wrap_init(fun)
     jax_args, in_trees = unzip2(map(pytree_to_jaxtupletree, args))
     jaxtree_fun, out_tree = pytree_fun_to_jaxtupletree_fun(wrapped, in_trees)
     pvals = map(pv_like, jax_args)
@@ -811,3 +810,44 @@ def jarrett(fun):
   ad.primitive_jvps[new_fun.primitive] = elementwise_jvp
 
   return new_fun
+
+
+def make_graphviz(fun):
+  """Adapts `fun` to return a graphviz dot string of its program representation."""
+
+  def pv_like(x):
+    aval = xla.abstractify(x)
+    return pe.PartialVal((aval, core.unit))
+
+  def jaxpr_to_graphviz(jaxpr, consts):
+    fragment = ''
+
+    fragment += ''.join(map(dot_variable_node, jaxpr.invars, jaxpr.invars))
+    fragment += ''.join(map(dot_variable_node, jaxpr.freevars, jaxpr.freevars))
+    fragment += ''.join(map(dot_variable_node, jaxpr.constvars, consts))
+
+    for eqn in jaxpr.eqns:
+      if eqn.destructure:
+        assert False
+      else:
+        fragment += dot_function_node(eqn.outvars[0], eqn.primitive.name)
+        fragment += ''.join(dot_edge(invar, eqn.outvars[0]) for invar in eqn.invars)
+    return dot_graph(fragment)
+
+  dot_edge = '{} -> {} [color=gray30];\n'.format
+  dot_function_node = (
+      '{} [label="{}", shape=box, color=lightblue, style=filled];\n'.format)
+  dot_variable_node = '{} [label="{}", color=orange, style=filled]\n;'.format
+  dot_graph = 'digraph G {{{}}}'.format
+
+  @wraps(fun)
+  def graphviz_maker(*args, **kwargs):
+    wrapped = lu.wrap_init(fun)
+    jax_args, in_trees = unzip2(map(pytree_to_jaxtupletree, args))
+    jaxtree_fun, out_tree = pytree_fun_to_jaxtupletree_fun(wrapped, in_trees)
+    pvals = map(pv_like, jax_args)
+    jaxpr, _, consts = pe.trace_to_jaxpr(jaxtree_fun, pvals, **kwargs)
+    return jaxpr_to_graphviz(jaxpr, consts)
+
+  graphviz_maker.__name__ = "make_graphviz({})".format(graphviz_maker.__name__)
+  return graphviz_maker
