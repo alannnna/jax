@@ -41,25 +41,21 @@ if __name__ == '__main__':
     f3_args2 = [[(100, 1), (1000, 2)], 42]
     f3_args3 = [[(100, 1), (1000, 2), (10000, 3)], 42]
 
-    fns = [f,
-            f1,
-            f2,
-            f3, f3, f3,
-            f4,
-            # f5,
-            # f6
-            ]
-
-    args = ([(2, 3)]*2
-            + [(2, 3, 4)]
-            + [f3_args1, f3_args2, f3_args3]
-            + [(list(range(5)),)]
-            # + [([5],)]
-            # + [(5,)]
-            )
+    fns = {
+        f: (2, 3),
+        f1: (2, 3),
+        f2: (2, 3, 4),
+        f3: f3_args1,
+        f3: f3_args2,
+        f3: f3_args3,
+        f4: (list(range(5)),),
+        # f5: ([5],),
+        # f6: (5,),
+    }
 
     print("starting--------------")
-    for fn, arg in zip(fns, args):
+    for fn, arg in fns.items():
         print(str(fn.__name__) + "------------------")
         jitted_f = jit(fn)
+        print("jitted--------------------")
         print("result: " + repr(jitted_f(*arg)))
